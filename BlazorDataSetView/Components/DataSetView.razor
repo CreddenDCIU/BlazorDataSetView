@@ -1,0 +1,334 @@
+﻿@typeparam TEntity
+@using System.Reflection
+@using System.ComponentModel
+@using BlazorDataSetView
+@using BlazorDataSetView.Providers
+
+<div class="data-set-view-top-bar">
+    @if (ShowSearch)
+    {
+        <span class="data-set-view-search-bar">
+            Search: <input type="text" @ref="txtSearchBox" @bind-Value="@CurrentSearch" @bind-Value:event="oninput" />
+        </span>
+    }
+    @GetPaginationControls()
+</div>
+<div class="data-set-view-container">
+    <table>
+        <tr>
+            @if(Selectable)
+            {
+                <th>
+                    <InputCheckbox @bind-Value="SelectAllChecked" />
+                </th>
+            }
+            @foreach (var propertyTuple in GetDisplayedPropertyList() ?? [])
+            {
+                var property = propertyTuple.Property;
+                var propertyPath = propertyTuple.PropertyPath;
+
+                var displayName = property.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName ?? property.Name;
+                var columnCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(default, property.Name);
+
+                if(property == SortField)
+                {
+                    displayName += SortAscending ? "▴" : "▾";
+                }
+
+                <th class="@columnCssClass" @onclick="() => ToggleSort(property)">@(displayName)</th>
+            }
+        </tr>
+        @foreach (var record in CurrentPage ?? [])
+        {
+            var rowCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, null);
+
+            <tr class="data-set-view-record @rowCssClass">
+                @if (Selectable)
+                {
+                    var recordSelected = SelectedRecords.ContainsKey(record!) ? SelectedRecords[record!] : false;
+                    <td @onclick="() => SelectRecord(record)">
+                        <InputCheckbox @bind-Value="recordSelected" />
+                    </td>
+                }
+                @foreach (var propertyTuple in GetDisplayedPropertyList() ?? [])
+                {
+                    var property = propertyTuple.Property;
+                    var propertyPath = propertyTuple.PropertyPath;
+                    var propertyValue = GetPropertyValue(record!, property, propertyPath);
+
+                    var fieldCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, property.Name);
+
+                    <td class="@fieldCssClass" @onclick="() => RecordClicked(record)" title="@propertyValue">@propertyValue</td>
+                }
+            </tr>
+        }
+    </table>
+</div>
+@GetPaginationControls()
+
+@code {
+    [Parameter, EditorRequired]
+    public IEnumerable<TEntity>? DataSource { get; set; }
+
+    [Parameter]
+    public ViewDefinition<TEntity>? DataSourceDefinition { get; set; }
+
+    [Parameter]
+    public EventCallback<TEntity?> OnRecordClicked { get; set; }
+
+    [Parameter]
+    public bool Selectable { get; set; } = false;
+
+    [Parameter]
+    public Dictionary<object, bool> SelectedRecords { get; set; } = [];
+
+    [Parameter]
+    public bool Paginate { get; set; } = true;
+
+    [Parameter]
+    public bool ShowSearch { get; set; } = true;
+
+    protected bool _selectAllChecked = false;
+    public bool SelectAllChecked
+    {
+        get => _selectAllChecked;
+        set
+        {
+            _selectAllChecked = value;
+            ToggleSelectAll(_selectAllChecked);
+        }
+    }
+
+    protected List<PropertyInfo> Properties =>
+        DataSource == null ? [] : typeof(TEntity).GetProperties().ToList();
+
+    protected PropertyInfo? SortField { get; set; }
+    protected bool SortAscending { get; set; } = true;
+
+    protected IEnumerable<TEntity>? FilteredData
+        => DataSource == null ? null : DataSource.Where(record => MatchesSearchString(record, _currentSearch));
+
+    protected int PageIndex { get; set; }
+    protected int PageSize { get; set; } = 25;
+    protected int PageCount => FilteredData == null ? 1 : (FilteredData.Count() / PageSize) + 1;
+    protected IEnumerable<TEntity>? CurrentPage => !Paginate ? FilteredData :
+        FilteredData == null ? []
+            : (SortField == null ? FilteredData
+                : SortAscending ? FilteredData.OrderBy(record => SortField.GetValue(record) is IComparable ? SortField.GetValue(record) : SortField.GetValue(record)?.ToString())
+                    : FilteredData.OrderByDescending(record => SortField.GetValue(record) is IComparable ? SortField.GetValue(record) : SortField.GetValue(record)?.ToString()))
+            .Skip(PageIndex * PageSize).Take(PageSize);
+
+    protected ElementReference? txtSearchBox { get; set; }
+    private string _currentSearch = string.Empty;
+    protected string CurrentSearch
+    {
+        get => _currentSearch;
+        set
+        {
+            _currentSearch = value ?? string.Empty;
+            UpdateSearchResults(_currentSearch);
+        }
+    }
+
+    public RenderFragment GetPaginationControls()
+    {
+        if (!Paginate) return new(builder => builder.AddContent(0, @<text></text>));
+
+        return new(builder =>
+        {
+            int componentIndex = 0;
+
+            builder.OpenElement(componentIndex++, "div");
+            builder.AddAttribute(componentIndex++, "class", "data-set-view-pagination");
+
+            if(PageIndex <= 0)
+            {
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button inactive">&lt;&lt;</button>);
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button inactive">&lt;</button>);
+            }
+            else
+            {
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button" onclick="@(() => GoToPage(0))">&lt;&lt;</button>);
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button" onclick="@(() => GoToPage(PageIndex - 1))">&lt;</button>);
+            }
+
+            builder.AddContent(componentIndex++,@<text>@(PageIndex + 1) of @PageCount</text>);
+
+            if (PageIndex + 1 >= PageCount)
+            {
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button inactive">&gt;</button>);
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button inactive">&gt;&gt;</button>);
+            }
+            else
+            {
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button" onclick="@(() => GoToPage(PageIndex + 1))">&gt;</button>);
+                builder.AddContent(componentIndex++,@<button type="button" class="page-button" onclick="@(() => GoToPage(PageCount - 1))">&gt;&gt;</button>);
+            }
+
+            builder.AddContent(componentIndex++,@<text>Records Per Page: </text>);
+            builder.OpenElement(componentIndex++, "select");
+            builder.AddAttribute(componentIndex++, "value", PageSize);
+            builder.AddAttribute(componentIndex++, "onchange", UpdatePageSize);
+            builder.AddContent(componentIndex++,@<option value="25">25</option>);
+            builder.AddContent(componentIndex++,@<option value="50">50</option>);
+            builder.AddContent(componentIndex++,@<option value="100">100</option>);
+            builder.AddContent(componentIndex++,@<option value="250">250</option>);
+            builder.CloseElement();
+            builder.CloseElement();
+        });
+    }
+
+    public void GoToPage(int newPageIndex)
+    {
+        newPageIndex = newPageIndex < 0 ? 0 : newPageIndex;
+        newPageIndex = newPageIndex + 1 > PageCount ? PageCount - 1 : newPageIndex;
+
+        PageIndex = newPageIndex;
+    }
+
+    public void UpdatePageSize(ChangeEventArgs args)
+    {
+        PageSize = args.Value == null ? PageSize : int.Parse(args.Value.ToString()!);
+        GoToPage(0);
+    }
+
+    public List<(PropertyInfo Property, string PropertyPath)>? GetDisplayedPropertyList()
+    {
+        if (DataSourceDefinition == null) { return null; }
+        List<(PropertyInfo Property, string PropertyPath)> retVal = [];
+
+        foreach(var displayField in DataSourceDefinition.DisplayedFields.OrderBy(displayField => displayField.Value.DisplayOrder))
+        {
+            var property = GetPropertyInfo(Properties.ToArray(), displayField.Key);
+            if(property == null || !displayField.Value.Visible) { continue; }
+
+            retVal.Add((property, displayField.Key));
+        }
+
+        return retVal;
+    }
+
+    public PropertyInfo? GetPropertyInfo(PropertyInfo[] properties, string propertyPath)
+    {
+        int indexOfPeriod = propertyPath.IndexOf('.');
+        if (indexOfPeriod == -1)
+        {
+            return properties.Where(property => property.Name.Equals(propertyPath)).SingleOrDefault();
+        }
+
+        var parentPropertyName = indexOfPeriod == -1 ? propertyPath : propertyPath.Substring(0, indexOfPeriod);
+        var parentProperty = properties.Where(property => property.Name.Equals(parentPropertyName)).SingleOrDefault();
+
+        if(parentProperty == null) { return null; }
+
+        var childProperties = parentProperty.PropertyType.GetProperties();
+        string propertySubstring = propertyPath.Substring(indexOfPeriod + 1);
+
+        return GetPropertyInfo(childProperties, propertySubstring);
+    }
+
+    public object? GetPropertyValue(object record, PropertyInfo property, string propertyPath)
+    {
+        int indexOfPeriod = propertyPath.IndexOf('.');
+        if (indexOfPeriod == -1)
+        {
+            return property.GetValue(record);
+        }
+
+        var childPropertyName = indexOfPeriod == -1 ? propertyPath : propertyPath.Substring(0, indexOfPeriod);
+        var childProperty = record!.GetType().GetProperties().Where(property => property.Name == childPropertyName).SingleOrDefault();
+        var childRecord = childProperty?.GetValue(record);
+
+        if (childRecord == null) return null;
+
+        string pathSubstring = propertyPath.Substring(indexOfPeriod + 1);
+
+        return GetPropertyValue(childRecord, property, pathSubstring);
+    }
+
+    public void ToggleSort(PropertyInfo property)
+    {
+        if(property == SortField)
+        {
+            SortAscending = !SortAscending;
+            return;
+        }
+
+        SortField = property;
+        SortAscending = true;
+
+        SelectAllChecked = false;
+    }
+
+    public void RecordClicked(TEntity? record)
+    {
+        OnRecordClicked.InvokeAsync(record);
+    }
+
+    public void UpdateSearchResults(string searchString)
+    {
+        if(PageIndex != 0)
+        {
+            GoToPage(0);
+        }
+
+        SelectAllChecked = false;
+        this.StateHasChanged();
+    }
+
+    protected string GetSearchString(TEntity? record)
+    {
+        string retVal = string.Empty;
+
+        foreach(var property in Properties)
+        {
+            retVal += property.GetValue(record)?.ToString()?.ToLowerInvariant().Replace(" ", "") ?? string.Empty;
+        }
+
+        return retVal;
+    }
+
+    protected bool MatchesSearchString(TEntity? record, string searchText)
+    {
+        if (searchText.Trim().Equals(string.Empty)) return true;
+
+        var searchStringParts = GetSearchString(record).Split(" ");
+        var searchTextParts = searchText.ToLowerInvariant().Split(" ");
+
+        foreach(var searchTextPart in searchTextParts)
+        {
+            if(searchTextPart.Trim().Equals(string.Empty)) { continue; }
+
+            foreach(var searchStringPart in searchStringParts)
+            {
+                if (!searchStringPart.Contains(searchTextPart) || searchStringPart.Trim().Equals(string.Empty)) { continue; }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void ToggleSelectAll(bool value)
+    {
+        SelectedRecords.Clear();
+        foreach(var record in CurrentPage ?? [])
+        {
+            SelectedRecords.Add(record!, value);
+        }
+    }
+
+    public void SelectRecord(TEntity? record)
+    {
+        if (record == null) return;
+
+        if(SelectedRecords.ContainsKey(record))
+        {
+            SelectedRecords[record] = !SelectedRecords[record];
+        }
+        else
+        {
+            SelectedRecords.Add(record, true);
+        }
+    }
+}
