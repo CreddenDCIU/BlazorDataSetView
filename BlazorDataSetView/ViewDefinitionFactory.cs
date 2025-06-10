@@ -13,7 +13,8 @@ public class ViewDefinitionFactory
         {
             DisplayedFields = provider.GetDisplayedFieldDictionary<TEntity>(),
             FilterableFields = provider.GetFilterableFieldDictionary<TEntity>(),
-            FieldFormatter = provider.GetFieldFormatterFunc<TEntity>()
+            FieldFormatter = provider.GetFieldFormatterFunc<TEntity>(),
+            PossibleValuesForField = provider.GetPossibleValuesForField<TEntity>()
         };
     }
 }

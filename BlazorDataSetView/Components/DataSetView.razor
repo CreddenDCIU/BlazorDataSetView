@@ -3,6 +3,7 @@
 @using System.ComponentModel
 @using BlazorDataSetView
 @using BlazorDataSetView.Providers
+@using BlazorDataSetView.Enums
 
 <div class="data-set-view-top-bar">
     @if (ShowSearch)
@@ -57,8 +58,74 @@
                     var propertyValue = GetPropertyValue(record!, property, propertyPath);
 
                     var fieldCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, property.Name);
+                    EditableInputTypes propertyEditableType = GetPropertyEditableInputType(property);
 
-                    <td class="@fieldCssClass" @onclick="() => RecordClicked(record)" title="@propertyValue">@propertyValue</td>
+                    bool isFieldEditable = (propertyEditableType != EditableInputTypes.NotEditable) && FormInEditMode;
+                    var propertyPossibleValues = DataSourceDefinition?.PossibleValuesForField == null || propertyEditableType != EditableInputTypes.InputSelect ? [] 
+                        : DataSourceDefinition.PossibleValuesForField(property.Name);
+
+                    <td class="@fieldCssClass" @onclick="() => RecordClicked(record)" title="@propertyValue">
+                        @if (!isFieldEditable)
+                        {
+                            <text>@propertyValue</text>
+                        }
+                        else
+                        {
+                            switch (propertyEditableType)
+                            {
+                                case EditableInputTypes.InputText:
+                                    @if (propertyValue is string)
+                                    {
+                                        string value = (string)propertyValue;
+                                        <input type="text" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                    }
+                                    break;
+                                case EditableInputTypes.InputTextArea:
+                                    @if (propertyValue is string)
+                                    {
+                                        string value = (string)propertyValue;
+                                        <textarea onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))">@value</textarea>
+                                    }
+                                    break;
+                                case EditableInputTypes.InputDate:
+                                    @if (propertyValue is DateTime)
+                                    {
+                                        string value = ((DateTime)propertyValue).ToShortDateString();
+                                        <input type="date" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                    }
+                                    break;
+                                case EditableInputTypes.InputNumber:
+                                    @if (propertyValue is int)
+                                    {
+                                        int value = (int)propertyValue;
+                                        <input type="number" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                    }
+                                    break;
+                                case EditableInputTypes.InputCheckbox:
+                                    if (propertyValue is bool)
+                                    {
+                                        bool value = (bool)propertyValue;
+                                        <input type="checkbox" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                    }
+                                    break;
+                                case EditableInputTypes.InputSelect:
+                                    <select @onchange="(ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args)">
+                                        @foreach (var keyValuePair in propertyPossibleValues ?? [])
+                                        {
+                                            @if (keyValuePair.Value == propertyValue)
+                                            {
+                                                <option value="@keyValuePair.Value" selected>@keyValuePair.Key</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@keyValuePair.Value">@keyValuePair.Key</option>
+                                            }
+                                        }
+                                    </select>
+                                    break;
+                            }
+                        }
+                    </td>
                 }
             </tr>
         }
@@ -78,6 +145,9 @@
 
     [Parameter]
     public bool Selectable { get; set; } = false;
+
+    [Parameter]
+    public bool FormInEditMode { get; set; } = false;
 
     [Parameter]
     public Dictionary<object, bool> SelectedRecords { get; set; } = [];
@@ -244,6 +314,67 @@
         string pathSubstring = propertyPath.Substring(indexOfPeriod + 1);
 
         return GetPropertyValue(childRecord, property, pathSubstring);
+    }
+
+    private void SetPropertyValue(object? record, PropertyInfo? property, EditableInputTypes editType, ChangeEventArgs args)
+    {
+        if (record == null || property == null) { return; }
+
+        switch (editType)
+        {
+            case EditableInputTypes.InputText:
+            case EditableInputTypes.InputTextArea:
+                string? strInputText = args.Value?.ToString();
+                SetPropertyValue<string?>(record, property, strInputText);
+                break;
+            case EditableInputTypes.InputDate:
+                string? strInputDate = args.Value?.ToString();
+                SetPropertyValue<DateTime?>(record, property, strInputDate == null ? null : DateTime.Parse(strInputDate));
+                break;
+            case EditableInputTypes.InputNumber:
+                string? strInputNumber = args.Value?.ToString();
+                int? intInputNumber = strInputNumber == null ? null : int.Parse(strInputNumber);
+                SetPropertyValue<int?>(record, property, intInputNumber);
+                break;
+            case EditableInputTypes.InputSelect:
+                if (property.PropertyType.IsEnum)
+                {
+                    var castValue = args.Value == null ? null : Enum.Parse(property.PropertyType, args.Value.ToString()!);
+                    SetPropertyValue(record, property, castValue);
+                }
+                else
+                {
+                    var castValue = Convert.ChangeType(args.Value, property.PropertyType, null);
+                    SetPropertyValue(record, property, castValue);
+                }
+                break;
+            case EditableInputTypes.InputCheckbox:
+                bool? boolInputCheckbox = args.Value == null ? null : bool.Parse(args.Value.ToString()!);
+                SetPropertyValue(record, property, boolInputCheckbox);
+                break;
+        }
+    }
+
+    private void SetPropertyValue<T>(object? record, PropertyInfo? property, T? value)
+    {
+        if (record == null || property == null) { return; }
+
+        property.SetValue(record, value);
+        StateHasChanged();
+
+        return;
+    }
+
+    private EditableInputTypes GetPropertyEditableInputType(PropertyInfo property)
+    {
+        if (DataSourceDefinition == null) { return EditableInputTypes.NotEditable; }
+
+        KeyValuePair<string, (bool Visible, EditableInputTypes EditableType, int DisplayOrder)>? displayField = DataSourceDefinition.DisplayedFields
+            .Where(field => field.Key == property.Name).SingleOrDefault();
+
+        if (displayField == null) { return EditableInputTypes.NotEditable; }
+
+        return displayField.Value.Value.EditableType;
     }
 
     public void ToggleSort(PropertyInfo property)
