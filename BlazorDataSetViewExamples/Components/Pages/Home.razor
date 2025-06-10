@@ -12,6 +12,14 @@
 
 <h1>Hello, world!</h1>
 
+@if (!FormInEditMode)
+{
+    <input type="button" value="Edit" @onclick="() => FormInEditMode = true" />
+}
+else
+{
+    <input type="button" value="Save Changes" @onclick="() => FormInEditMode = false" />
+}
 <DataSetView DataSource="DataSource" DataSourceDefinition="DataSourceDefinition" FormInEditMode="FormInEditMode" Paginate="true" 
         Selectable="false" SelectedRecords="[]" ShowSearch="true" />
 
@@ -40,6 +48,6 @@ Welcome to your new app.
 
         DataSourceDefinition = ViewDefinitionFactory.Create<ExampleReportRecord>(new Providers.ExampleReportViewDefinitionProvider());
 
-        FormInEditMode = true;
+        FormInEditMode = false;
     }
 }
