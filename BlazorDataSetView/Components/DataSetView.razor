@@ -1,4 +1,4 @@
-﻿@typeparam TEntity
+﻿@typeparam TEntity where TEntity : class
 @using System.Reflection
 @using System.ComponentModel
 @using BlazorDataSetView
@@ -60,7 +60,7 @@
                     var fieldCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, property.Name);
                     EditableInputTypes propertyEditableType = GetPropertyEditableInputType(property);
 
-                    bool isFieldEditable = (propertyEditableType != EditableInputTypes.NotEditable) && FormInEditMode;
+                    bool isFieldEditable = (propertyEditableType != EditableInputTypes.NotEditable) && (FormInEditMode || (SingleRecordEdit && SingleRecordBeingEdited == record));
                     var propertyPossibleValues = DataSourceDefinition?.PossibleValuesForField == null || propertyEditableType != EditableInputTypes.InputSelect ? [] 
                         : DataSourceDefinition.PossibleValuesForField(property.Name);
 
@@ -74,38 +74,38 @@
                             switch (propertyEditableType)
                             {
                                 case EditableInputTypes.InputText:
-                                    @if (propertyValue is string)
+                                    if (property.PropertyType == typeof(string))
                                     {
-                                        string value = (string)propertyValue;
-                                        <input type="text" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                        string? tValue = propertyValue?.ToString();
+                                        <input type="text" value="@tValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
                                     }
                                     break;
                                 case EditableInputTypes.InputTextArea:
-                                    @if (propertyValue is string)
+                                    if (property.PropertyType == typeof(string))
                                     {
-                                        string value = (string)propertyValue;
-                                        <textarea onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))">@value</textarea>
+                                        string? taValue = propertyValue?.ToString();
+                                        <textarea onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))">@taValue</textarea>
                                     }
                                     break;
                                 case EditableInputTypes.InputDate:
-                                    @if (propertyValue is DateTime)
+                                    @if (property.PropertyType == typeof(DateTime) || property.PropertyType == typeof(DateTime?))
                                     {
-                                        string value = ((DateTime)propertyValue).ToShortDateString();
-                                        <input type="date" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                        string? dValue = ((DateTime?)propertyValue)?.ToShortDateString();
+                                        <input type="date" value="@dValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
                                     }
                                     break;
                                 case EditableInputTypes.InputNumber:
-                                    @if (propertyValue is int)
+                                    @if (property.PropertyType == typeof(int))
                                     {
-                                        int value = (int)propertyValue;
-                                        <input type="number" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                        int? nValue = (int?)propertyValue;
+                                        <input type="number" value="@nValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
                                     }
                                     break;
                                 case EditableInputTypes.InputCheckbox:
-                                    if (propertyValue is bool)
+                                    if (property.PropertyType == typeof(bool))
                                     {
-                                        bool value = (bool)propertyValue;
-                                        <input type="checkbox" value="@value" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                        bool? bValue = (bool?)propertyValue;
+                                        <input type="checkbox" value="@bValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
                                     }
                                     break;
                                 case EditableInputTypes.InputSelect:
@@ -158,6 +158,9 @@
     [Parameter]
     public bool ShowSearch { get; set; } = true;
 
+    [Parameter]
+    public bool SingleRecordEdit { get; set; } = false;
+
     protected bool _selectAllChecked = false;
     public bool SelectAllChecked
     {
@@ -168,6 +171,8 @@
             ToggleSelectAll(_selectAllChecked);
         }
     }
+
+    public TEntity? SingleRecordBeingEdited { get; set; }
 
     protected List<PropertyInfo> Properties =>
         DataSource == null ? [] : typeof(TEntity).GetProperties().ToList();
@@ -200,7 +205,7 @@
         }
     }
 
-    public RenderFragment GetPaginationControls()
+    protected RenderFragment GetPaginationControls()
     {
         if (!Paginate) return new(builder => builder.AddContent(0, @<text></text>));
 
@@ -248,7 +253,7 @@
         });
     }
 
-    public void GoToPage(int newPageIndex)
+    protected void GoToPage(int newPageIndex)
     {
         newPageIndex = newPageIndex < 0 ? 0 : newPageIndex;
         newPageIndex = newPageIndex + 1 > PageCount ? PageCount - 1 : newPageIndex;
@@ -256,13 +261,13 @@
         PageIndex = newPageIndex;
     }
 
-    public void UpdatePageSize(ChangeEventArgs args)
+    protected void UpdatePageSize(ChangeEventArgs args)
     {
         PageSize = args.Value == null ? PageSize : int.Parse(args.Value.ToString()!);
         GoToPage(0);
     }
 
-    public List<(PropertyInfo Property, string PropertyPath)>? GetDisplayedPropertyList()
+    protected List<(PropertyInfo Property, string PropertyPath)>? GetDisplayedPropertyList()
     {
         if (DataSourceDefinition == null) { return null; }
         List<(PropertyInfo Property, string PropertyPath)> retVal = [];
@@ -278,7 +283,7 @@
         return retVal;
     }
 
-    public PropertyInfo? GetPropertyInfo(PropertyInfo[] properties, string propertyPath)
+    protected PropertyInfo? GetPropertyInfo(PropertyInfo[] properties, string propertyPath)
     {
         int indexOfPeriod = propertyPath.IndexOf('.');
         if (indexOfPeriod == -1)
@@ -297,7 +302,7 @@
         return GetPropertyInfo(childProperties, propertySubstring);
     }
 
-    public object? GetPropertyValue(object record, PropertyInfo property, string propertyPath)
+    protected object? GetPropertyValue(object record, PropertyInfo property, string propertyPath)
     {
         int indexOfPeriod = propertyPath.IndexOf('.');
         if (indexOfPeriod == -1)
@@ -377,7 +382,7 @@
         return displayField.Value.Value.EditableType;
     }
 
-    public void ToggleSort(PropertyInfo property)
+    protected void ToggleSort(PropertyInfo property)
     {
         if(property == SortField)
         {
@@ -391,12 +396,12 @@
         SelectAllChecked = false;
     }
 
-    public void RecordClicked(TEntity? record)
+    protected void RecordClicked(TEntity? record)
     {
         OnRecordClicked.InvokeAsync(record);
     }
 
-    public void UpdateSearchResults(string searchString)
+    protected void UpdateSearchResults(string searchString)
     {
         if(PageIndex != 0)
         {
@@ -440,7 +445,7 @@
         return false;
     }
 
-    public void ToggleSelectAll(bool value)
+    protected void ToggleSelectAll(bool value)
     {
         SelectedRecords.Clear();
         foreach(var record in CurrentPage ?? [])
@@ -449,7 +454,7 @@
         }
     }
 
-    public void SelectRecord(TEntity? record)
+    protected void SelectRecord(TEntity? record)
     {
         if (record == null) return;
 
