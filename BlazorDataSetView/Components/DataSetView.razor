@@ -110,6 +110,10 @@
                                     break;
                                 case EditableInputTypes.InputSelect:
                                     <select @onchange="(ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args)">
+                                        @if (Nullable.GetUnderlyingType(property.PropertyType) != null)
+                                        {
+                                            <option value=""></option>
+                                        }
                                         @foreach (var keyValuePair in propertyPossibleValues ?? [])
                                         {
                                             @if (keyValuePair.Value == propertyValue)
@@ -334,7 +338,7 @@
                 break;
             case EditableInputTypes.InputDate:
                 string? strInputDate = args.Value?.ToString();
-                SetPropertyValue<DateTime?>(record, property, strInputDate == null ? null : DateTime.Parse(strInputDate));
+                SetPropertyValue<DateTime?>(record, property, strInputDate == null || strInputDate == string.Empty ? null : DateTime.Parse(strInputDate));
                 break;
             case EditableInputTypes.InputNumber:
                 string? strInputNumber = args.Value?.ToString();
