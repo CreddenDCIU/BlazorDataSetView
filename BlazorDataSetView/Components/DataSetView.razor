@@ -8,8 +8,9 @@
 <div class="data-set-view-top-bar">
     @if (ShowSearch && SingleRecordBeingEdited == null)
     {
+        var searchEvent = SearchAsYouType ? "oninput" : "onchange";
         <span class="data-set-view-search-bar">
-            Search: <input type="text" @ref="txtSearchBox" @bind-Value="@CurrentSearch" @bind-Value:event="oninput" />
+            Search: <input type="text" @ref="txtSearchBox" @bind-Value="@CurrentSearch" @bind-Value:event="@searchEvent" />
         </span>
     }
     @GetPaginationControls()
@@ -161,6 +162,9 @@
 
     [Parameter]
     public bool ShowSearch { get; set; } = true;
+
+    [Parameter]
+    public bool SearchAsYouType { get; set; } = true;
 
     [Parameter]
     public bool SingleRecordEdit { get; set; } = false;

@@ -21,7 +21,7 @@ else
     <input type="button" value="Save Changes" @onclick="() => SaveChanges()" />
 }
 <DataSetView @ref="_dsvComponent" DataSource="DataSource" DataSourceDefinition="DataSourceDefinition" FormInEditMode="FormInEditMode" Paginate="true" SingleRecordEdit="true"
-    Selectable="false" SelectedRecords="[]" ShowSearch="true" TEntity="ExampleReportRecord" OnRecordClicked="ExampleReportRecord_Clicked" />
+    Selectable="false" SelectedRecords="[]" ShowSearch="true" SearchAsYouType="false" TEntity="ExampleReportRecord" OnRecordClicked="ExampleReportRecord_Clicked" />
 
 Welcome to your new app.
 
