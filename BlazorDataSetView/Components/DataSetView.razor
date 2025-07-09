@@ -6,7 +6,7 @@
 @using BlazorDataSetView.Enums
 
 <div class="data-set-view-top-bar">
-    @if (ShowSearch)
+    @if (ShowSearch && SingleRecordBeingEdited == null)
     {
         <span class="data-set-view-search-bar">
             Search: <input type="text" @ref="txtSearchBox" @bind-Value="@CurrentSearch" @bind-Value:event="oninput" />
@@ -116,7 +116,7 @@
                                         }
                                         @foreach (var keyValuePair in propertyPossibleValues ?? [])
                                         {
-                                            @if (keyValuePair.Value == propertyValue)
+                                            @if (keyValuePair.Value == propertyValue || (propertyValue != null && keyValuePair.Value.ToString() == propertyValue.ToString()))
                                             {
                                                 <option value="@keyValuePair.Value" selected>@keyValuePair.Key</option>
                                             }
@@ -154,7 +154,7 @@
     public bool FormInEditMode { get; set; } = false;
 
     [Parameter]
-    public Dictionary<object, bool> SelectedRecords { get; set; } = [];
+    public Dictionary<TEntity, bool> SelectedRecords { get; set; } = [];
 
     [Parameter]
     public bool Paginate { get; set; } = true;
