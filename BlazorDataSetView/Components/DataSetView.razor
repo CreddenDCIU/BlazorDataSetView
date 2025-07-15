@@ -94,9 +94,14 @@
                                         string? dValue = ((DateTime?)propertyValue)?.ToShortDateString();
                                         <input type="date" value="@dValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
                                     }
+                                    else if (property.PropertyType == typeof(DateOnly) || property.PropertyType == typeof(DateOnly?))
+                                    {
+                                        string? dValue = ((DateOnly?)propertyValue)?.ToShortDateString();
+                                        <input type="date" value="@dValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                    }
                                     break;
                                 case EditableInputTypes.InputNumber:
-                                    @if (property.PropertyType == typeof(int))
+                                    @if (property.PropertyType == typeof(int) || property.PropertyType == typeof(int?))
                                     {
                                         int? nValue = (int?)propertyValue;
                                         <input type="number" value="@nValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
@@ -342,7 +347,14 @@
                 break;
             case EditableInputTypes.InputDate:
                 string? strInputDate = args.Value?.ToString();
-                SetPropertyValue<DateTime?>(record, property, strInputDate == null || strInputDate == string.Empty ? null : DateTime.Parse(strInputDate));
+                if (property.PropertyType == typeof(DateOnly) || property.PropertyType == typeof(DateOnly?))
+                {
+                    SetPropertyValue<DateOnly?>(record, property, strInputDate == null || strInputDate == string.Empty ? null : DateOnly.Parse(strInputDate));
+                }
+                else
+                {
+                    SetPropertyValue<DateTime?>(record, property, strInputDate == null || strInputDate == string.Empty ? null : DateTime.Parse(strInputDate));
+                }
                 break;
             case EditableInputTypes.InputNumber:
                 string? strInputNumber = args.Value?.ToString();
