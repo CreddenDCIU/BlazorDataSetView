@@ -12,16 +12,16 @@
 
 <h1>Hello, world!</h1>
 
-@if (!FormInEditMode)
+@if (!FormInEditMode && _dsvComponent?.SingleRecordBeingEdited == null)
 {
-    <input type="button" value="Edit" @onclick="() => FormInEditMode = true" />
+    <input type="button" value="Edit" @onclick="() => SwitchToEditMode()" />
 }
 else
 {
-    <input type="button" value="Save Changes" @onclick="() => FormInEditMode = false" />
+    <input type="button" value="Save Changes" @onclick="() => SaveChanges()" />
 }
-<DataSetView DataSource="DataSource" DataSourceDefinition="DataSourceDefinition" FormInEditMode="FormInEditMode" Paginate="true" 
-        Selectable="false" SelectedRecords="[]" ShowSearch="true" />
+<DataSetView @ref="_dsvComponent" DataSource="DataSource" DataSourceDefinition="DataSourceDefinition" FormInEditMode="FormInEditMode" Paginate="true" SingleRecordEdit="true"
+    Selectable="false" SelectedRecords="[]" ShowSearch="true" SearchAsYouType="false" TEntity="ExampleReportRecord" OnRecordClicked="ExampleReportRecord_Clicked" />
 
 Welcome to your new app.
 
@@ -34,6 +34,8 @@ Welcome to your new app.
 
     [Parameter]
     public bool FormInEditMode { get; set; }
+
+    private DataSetView<ExampleReportRecord>? _dsvComponent;
 
     protected override void OnInitialized()
     {
@@ -49,5 +51,26 @@ Welcome to your new app.
         DataSourceDefinition = ViewDefinitionFactory.Create<ExampleReportRecord>(new Providers.ExampleReportViewDefinitionProvider());
 
         FormInEditMode = false;
+    }
+
+    public void ExampleReportRecord_Clicked(ExampleReportRecord record)
+    {
+        if (_dsvComponent == null) { return; }
+        if (_dsvComponent.SingleRecordBeingEdited != null) { return; }
+
+        _dsvComponent.SingleRecordBeingEdited = record;
+    }
+
+    public void SwitchToEditMode()
+    {
+        FormInEditMode = true;
+    }
+
+    public void SaveChanges()
+    {
+        FormInEditMode = false;
+
+        if (_dsvComponent == null) { return; }
+        _dsvComponent.SingleRecordBeingEdited = null;
     }
 }
