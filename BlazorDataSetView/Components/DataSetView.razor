@@ -110,8 +110,15 @@
                                 case EditableInputTypes.InputCheckbox:
                                     if (property.PropertyType == typeof(bool))
                                     {
-                                        bool? bValue = (bool?)propertyValue;
-                                        <input type="checkbox" value="@bValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                        bool bValue = propertyValue == null ? false : (bool)propertyValue;
+                                        if (bValue)
+                                        {
+                                            <input type="checkbox" checked onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                        }
+                                        else
+                                        {
+                                            <input type="checkbox" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
+                                        }
                                     }
                                     break;
                                 case EditableInputTypes.InputSelect:
