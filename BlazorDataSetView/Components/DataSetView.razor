@@ -30,7 +30,7 @@
                 var propertyPath = propertyTuple.PropertyPath;
 
                 var displayName = property.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName ?? property.Name;
-                var columnCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(default, property.Name);
+                var columnCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(default, property.Name, false);
 
                 if(property == SortField)
                 {
@@ -42,7 +42,8 @@
         </tr>
         @foreach (var record in CurrentPage ?? [])
         {
-            var rowCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, null);
+            bool recordIsEditable = (FormInEditMode || (SingleRecordEdit && SingleRecordBeingEdited == record));
+            var rowCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, null, recordIsEditable);
 
             <tr class="data-set-view-record @rowCssClass">
                 @if (Selectable)
@@ -58,12 +59,14 @@
                     var propertyPath = propertyTuple.PropertyPath;
                     var propertyValue = GetPropertyValue(record!, property, propertyPath);
 
-                    var fieldCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, property.Name);
                     EditableInputTypes propertyEditableType = GetPropertyEditableInputType(property);
+                    bool isFieldEditable = (propertyEditableType != EditableInputTypes.NotEditable) && recordIsEditable;
 
-                    bool isFieldEditable = (propertyEditableType != EditableInputTypes.NotEditable) && (FormInEditMode || (SingleRecordEdit && SingleRecordBeingEdited == record));
+                    var fieldCssClass = DataSourceDefinition?.FieldFormatter == null ? string.Empty : DataSourceDefinition.FieldFormatter(record, property.Name, recordIsEditable);
+
                     var propertyPossibleValues = DataSourceDefinition?.PossibleValuesForField == null || propertyEditableType != EditableInputTypes.InputSelect ? [] 
                         : DataSourceDefinition.PossibleValuesForField(property.Name);
+                    bool inputSelectValueMissing = true;
 
                     <td class="@fieldCssClass" @onclick="() => RecordClicked(record)" title="@propertyValue">
                         @if (!isFieldEditable)
@@ -91,12 +94,12 @@
                                 case EditableInputTypes.InputDate:
                                     @if (property.PropertyType == typeof(DateTime) || property.PropertyType == typeof(DateTime?))
                                     {
-                                        string? dValue = ((DateTime?)propertyValue)?.ToShortDateString();
+                                        string? dValue = ((DateTime?)propertyValue)?.ToString("yyyy-MM-dd");
                                         <input type="date" value="@dValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
                                     }
                                     else if (property.PropertyType == typeof(DateOnly) || property.PropertyType == typeof(DateOnly?))
                                     {
-                                        string? dValue = ((DateOnly?)propertyValue)?.ToShortDateString();
+                                        string? dValue = ((DateOnly?)propertyValue)?.ToString("yyyy-MM-dd");
                                         <input type="date" value="@dValue" onchange="@((ChangeEventArgs args) => SetPropertyValue(record, property, propertyEditableType, args))" />
                                     }
                                     break;
@@ -131,12 +134,18 @@
                                         {
                                             @if (keyValuePair.Value == propertyValue || (propertyValue != null && keyValuePair.Value.ToString() == propertyValue.ToString()))
                                             {
+                                                inputSelectValueMissing = false;
                                                 <option value="@keyValuePair.Value" selected>@keyValuePair.Key</option>
+
                                             }
                                             else
                                             {
                                                 <option value="@keyValuePair.Value">@keyValuePair.Key</option>
                                             }
+                                        }
+                                        @if (inputSelectValueMissing && propertyValue != default)
+                                        {
+                                            <option value="@propertyValue" selected>@propertyValue.ToString()</option>
                                         }
                                     </select>
                                     break;

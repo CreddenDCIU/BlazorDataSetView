@@ -8,6 +8,7 @@ public class ExampleReportRecord
     public int? Age => DateOfBirth == null ? null : DateTime.Today.Year - DateOfBirth.Value.Year - 
         (DateTime.Today.Month < DateOfBirth.Value.Month || DateTime.Today.Day < DateOfBirth.Value.Day ? 1 : 0);
     public DateTime? DateOfBirth { get; set; }
+    public DateOnly? AnotherDate { get; set; }
     public int RecordTypeId { get; set; }
     public RecordType RecordType
     {
@@ -25,5 +26,6 @@ public enum RecordType
     None = 0,
     Type1 = 1,
     Type2 = 2,
-    Type3 = 3
+    Type3 = 3,
+    Type4 = 4
 }

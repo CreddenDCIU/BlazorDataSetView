@@ -18,6 +18,7 @@ public class ExampleReportViewDefinitionProvider : IViewDefinitionProvider
                 { nameof(ExampleReportRecord.FirstName), (true, EditableInputTypes.InputText, displayOrder++) },
                 { nameof(ExampleReportRecord.LastName), (true, EditableInputTypes.InputText, displayOrder++) },
                 { nameof(ExampleReportRecord.DateOfBirth), (true, EditableInputTypes.InputDate, displayOrder++) },
+                { nameof(ExampleReportRecord.AnotherDate), (true, EditableInputTypes.InputDate, displayOrder++) },
                 { nameof(ExampleReportRecord.Age), (true, EditableInputTypes.NotEditable, displayOrder++) },
                 { nameof(ExampleReportRecord.RecordTypeId), (true, EditableInputTypes.InputNumber, displayOrder++) },
                 { nameof(ExampleReportRecord.RecordType), (true, EditableInputTypes.InputSelect, displayOrder++) },
@@ -27,12 +28,12 @@ public class ExampleReportViewDefinitionProvider : IViewDefinitionProvider
         };
     }
 
-    public Func<TEntity?, string?, string> GetFieldFormatterFunc<TEntity>() where TEntity : class
+    public Func<TEntity?, string?, bool, string> GetFieldFormatterFunc<TEntity>() where TEntity : class
     {
         return typeof(TEntity).Name switch
         {
             nameof(ExampleReportRecord) => GetFieldFormat,
-            _ => ((TEntity? inputRecord, string? inputFieldName) => string.Empty)
+            _ => ((TEntity? inputRecord, string? inputFieldName, bool isInEditMode) => string.Empty)
         };
     }
 
@@ -50,7 +51,7 @@ public class ExampleReportViewDefinitionProvider : IViewDefinitionProvider
         };
     }
 
-    public string GetFieldFormat(object? record, string? fieldName)
+    public string GetFieldFormat(object? record, string? fieldName, bool isInEditMode)
     {
         return string.Empty;
     }
@@ -61,10 +62,10 @@ public class ExampleReportViewDefinitionProvider : IViewDefinitionProvider
         {
             nameof(ExampleReportRecord.RecordType) => new List<KeyValuePair<string, object>>()
             {
-                { new KeyValuePair<string, object>(RecordType.None.ToString(), (int)RecordType.None) },
-                { new KeyValuePair<string, object>(RecordType.Type1.ToString(), (int)RecordType.Type1) },
-                { new KeyValuePair<string, object>(RecordType.Type2.ToString(), (int)RecordType.Type2) },
-                { new KeyValuePair<string, object>(RecordType.Type3.ToString(), (int)RecordType.Type3) }
+                { new KeyValuePair<string, object>(RecordType.None.ToString(), RecordType.None) },
+                { new KeyValuePair<string, object>(RecordType.Type1.ToString(), RecordType.Type1) },
+                { new KeyValuePair<string, object>(RecordType.Type2.ToString(), RecordType.Type2) },
+                { new KeyValuePair<string, object>(RecordType.Type3.ToString(), RecordType.Type3) }
             },
             _ => []
         };

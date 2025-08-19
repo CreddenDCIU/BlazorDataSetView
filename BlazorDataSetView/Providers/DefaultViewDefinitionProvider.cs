@@ -21,8 +21,8 @@ public class DefaultViewDefinitionProvider : IViewDefinitionProvider
     public Dictionary<string, (bool Visible, object InitialValue)> GetFilterableFieldDictionary<TEntity>() where TEntity : class 
         => [];
 
-    public Func<TEntity?, string?, string> GetFieldFormatterFunc<TEntity>() where TEntity : class
-        => ((TEntity? inputRecord, string? inputFieldName) => string.Empty);
+    public Func<TEntity?, string?, bool, string> GetFieldFormatterFunc<TEntity>() where TEntity : class
+        => ((TEntity? inputRecord, string? inputFieldName, bool isInEditMode) => string.Empty);
 
     public Func<string?, IEnumerable<KeyValuePair<string, object>>?> GetPossibleValuesForField<TEntity>() where TEntity : class
         => ((string? inputFieldName) => []);
