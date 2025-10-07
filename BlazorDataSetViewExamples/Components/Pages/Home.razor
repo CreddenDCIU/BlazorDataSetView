@@ -7,6 +7,7 @@
 @using BlazorDataSetView.Providers
 @using BlazorDataSetView.Enums
 @using BlazorDataSetViewExamples.Records
+@using System.Reflection
 
 <PageTitle>Home</PageTitle>
 
@@ -20,51 +21,24 @@ else
 {
     <input type="button" value="Save Changes" @onclick="() => SaveChanges()" />
 }
-<DataSetView @ref="_dsvComponent" DataSource="DataSource" DataSourceDefinition="DataSourceDefinition" FormInEditMode="FormInEditMode" Paginate="true" SingleRecordEdit="true"
-    Selectable="false" SelectedRecords="[]" ShowSearch="true" SearchAsYouType="false" TEntity="ExampleReportRecord" OnRecordClicked="ExampleReportRecord_Clicked" />
+<DataSetQueryView @ref="_dsvComponent" DataSourceDefinition="DataSourceDefinition" FormInEditMode="FormInEditMode" Paginate="true" SingleRecordEdit="true"
+    Selectable="false" SelectedRecords="[]" ShowSearch="true" SearchAsYouType="false" TEntity="ExampleReportRecord" OnRecordClicked="ExampleReportRecord_Clicked" 
+    DataSourceUpdater="UpdateDataSource"/>
 
 Welcome to your new app.
 
 @code {
-    [Parameter]
-    public List<ExampleReportRecord> DataSource { get; set; } = [];
-
     [Parameter]
     public ViewDefinition<ExampleReportRecord>? DataSourceDefinition { get; set; }
 
     [Parameter]
     public bool FormInEditMode { get; set; }
 
-    private DataSetView<ExampleReportRecord>? _dsvComponent;
+    private DataSetQueryView<ExampleReportRecord>? _dsvComponent;
 
     protected override void OnInitialized()
     {
-        DataSource = new List<ExampleReportRecord>()
-        {
-            new () { Id = 1, FirstName = "Christi", LastName = "Hodge", DateOfBirth = new DateTime(2000, 02, 21), RecordType = RecordType.Type4 },
-            new () { Id = 2, FirstName = "Mildred", LastName = "Walton", DateOfBirth = new DateTime(2003, 06, 24), RecordType = RecordType.None },
-            new () { Id = 3, FirstName = "Edna", LastName = "Curtis", DateOfBirth = new DateTime(2010, 05, 20), RecordType = RecordType.None },
-            new () { Id = 4, FirstName = "Luciano", LastName = "Ho", DateOfBirth = new DateTime(2010, 09, 07), RecordType = RecordType.None },
-            new () { Id = 5, FirstName = "Belinda", LastName = "Little", DateOfBirth = new DateTime(2011, 03, 23), RecordType = RecordType.None },
-            new () { Id = 6, FirstName = "Cristopher", LastName = "Gallegos", DateOfBirth = new DateTime(2012, 05, 13), RecordType = RecordType.None },
-            new () { Id = 7, FirstName = "Robbie", LastName = "Andrews", DateOfBirth = new DateTime(2018, 03, 22), RecordType = RecordType.None },
-            new () { Id = 8, FirstName = "Marina", LastName = "Whitney", DateOfBirth = new DateTime(2010, 09, 19), RecordType = RecordType.None },
-            new () { Id = 9, FirstName = "Lorenzo", LastName = "Cochran", DateOfBirth = new DateTime(2008, 06, 10), RecordType = RecordType.None },
-            new () { Id = 10, FirstName = "Major", LastName = "Orozco", DateOfBirth = new DateTime(2009, 05, 24), RecordType = RecordType.None },
-            new () { Id = 11, FirstName = "Lara", LastName = "Chung", DateOfBirth = new DateTime(2001, 09, 19), RecordType = RecordType.None },
-            new () { Id = 12, FirstName = "Tristan", LastName = "Schroeder", DateOfBirth = new DateTime(2012, 01, 15), RecordType = RecordType.None },
-            new () { Id = 13, FirstName = "Williams", LastName = "Waters", DateOfBirth = new DateTime(2009, 09, 08), RecordType = RecordType.None },
-            new () { Id = 14, FirstName = "Janet", LastName = "Montgomery", DateOfBirth = new DateTime(2022, 07, 20), RecordType = RecordType.None },
-            new () { Id = 15, FirstName = "Theron", LastName = "Craig", DateOfBirth = new DateTime(2002, 05, 17), RecordType = RecordType.None },
-            new () { Id = 16, FirstName = "Bobbi", LastName = "Beltran", DateOfBirth = new DateTime(2003, 04, 11), RecordType = RecordType.None },
-            new () { Id = 17, FirstName = "Martin", LastName = "Carey", DateOfBirth = new DateTime(2010, 07, 13), RecordType = RecordType.None },
-            new () { Id = 18, FirstName = "Jacklyn", LastName = "Blair", DateOfBirth = new DateTime(2010, 10, 19), RecordType = RecordType.None },
-            new () { Id = 19, FirstName = "Harold", LastName = "Martinez", DateOfBirth = new DateTime(2009, 05, 14), RecordType = RecordType.None },
-            new () { Id = 20, FirstName = "Ana", LastName = "Pacheco", DateOfBirth = new DateTime(2007, 02, 04), RecordType = RecordType.None },
-        };
-
         DataSourceDefinition = ViewDefinitionFactory.Create<ExampleReportRecord>(new Providers.ExampleReportViewDefinitionProvider());
-
         FormInEditMode = false;
     }
 
@@ -87,5 +61,105 @@ Welcome to your new app.
 
         if (_dsvComponent == null) { return; }
         _dsvComponent.SingleRecordBeingEdited = null;
+    }
+
+    public async Task<(IEnumerable<ExampleReportRecord> Data, int TotalRecords)> UpdateDataSource(int pageIndex, int pageSize, PropertyInfo? sortField = null,
+        bool sortAscending = false, PropertyInfo? searchField = null, string? searchText = null)
+    {
+        await Task.Delay(1);
+
+        var newData = new List<ExampleReportRecord>()
+        {
+            new () { Id = 1, FirstName = "Christi", LastName = "Hodge", DateOfBirth = new DateTime(2000, 02, 21), RecordType = RecordType.Type4 },
+            new () { Id = 2, FirstName = "Mildred", LastName = "Walton", DateOfBirth = new DateTime(2003, 06, 24), RecordType = RecordType.None },
+            new () { Id = 3, FirstName = "Edna", LastName = "Curtis", DateOfBirth = new DateTime(2010, 05, 20), RecordType = RecordType.None },
+            new () { Id = 4, FirstName = "Luciano", LastName = "Ho", DateOfBirth = new DateTime(2010, 09, 07), RecordType = RecordType.None },
+            new () { Id = 5, FirstName = "Belinda", LastName = "Little", DateOfBirth = new DateTime(2011, 03, 23), RecordType = RecordType.None },
+            new () { Id = 6, FirstName = "Cristopher", LastName = "Gallegos", DateOfBirth = new DateTime(2012, 05, 13), RecordType = RecordType.None },
+            new () { Id = 7, FirstName = "Robbie", LastName = "Andrews", DateOfBirth = new DateTime(2018, 03, 22), RecordType = RecordType.None },
+            new () { Id = 8, FirstName = "Marina", LastName = "Whitney", DateOfBirth = new DateTime(2010, 09, 19), RecordType = RecordType.None },
+            new () { Id = 9, FirstName = "Lorenzo", LastName = "Cochran", DateOfBirth = new DateTime(2008, 06, 10), RecordType = RecordType.None },
+            new () { Id = 10, FirstName = "Major", LastName = "Orozco", DateOfBirth = new DateTime(2009, 05, 24), RecordType = RecordType.None },
+            new () { Id = 11, FirstName = "Lara", LastName = "Chung", DateOfBirth = new DateTime(2001, 09, 19), RecordType = RecordType.None },
+            new () { Id = 12, FirstName = "Tristan", LastName = "Schroeder", DateOfBirth = new DateTime(2012, 01, 15), RecordType = RecordType.None },
+            new () { Id = 13, FirstName = "Williams", LastName = "Waters", DateOfBirth = new DateTime(2009, 09, 08), RecordType = RecordType.None },
+            new () { Id = 14, FirstName = "Janet", LastName = "Montgomery", DateOfBirth = new DateTime(2022, 07, 20), RecordType = RecordType.None },
+            new () { Id = 15, FirstName = "Theron", LastName = "Craig", DateOfBirth = new DateTime(2002, 05, 17), RecordType = RecordType.None },
+            new () { Id = 16, FirstName = "Bobbi", LastName = "Beltran", DateOfBirth = new DateTime(2003, 04, 11), RecordType = RecordType.None },
+            new () { Id = 17, FirstName = "Martin", LastName = "Carey", DateOfBirth = new DateTime(2010, 07, 13), RecordType = RecordType.None },
+            new () { Id = 18, FirstName = "Jacklyn", LastName = "Blair", DateOfBirth = new DateTime(2010, 10, 19), RecordType = RecordType.None },
+            new () { Id = 19, FirstName = "Harold", LastName = "Martinez", DateOfBirth = new DateTime(2009, 05, 14), RecordType = RecordType.None },
+            new () { Id = 20, FirstName = "Ana", LastName = "Pacheco", DateOfBirth = new DateTime(2007, 02, 04), RecordType = RecordType.None },
+            new () { Id = 21, FirstName = "Christi", LastName = "Hodge", DateOfBirth = new DateTime(2000, 02, 21), RecordType = RecordType.Type4 },
+            new () { Id = 22, FirstName = "Mildred", LastName = "Walton", DateOfBirth = new DateTime(2003, 06, 24), RecordType = RecordType.None },
+            new () { Id = 23, FirstName = "Edna", LastName = "Curtis", DateOfBirth = new DateTime(2010, 05, 20), RecordType = RecordType.None },
+            new () { Id = 24, FirstName = "Luciano", LastName = "Ho", DateOfBirth = new DateTime(2010, 09, 07), RecordType = RecordType.None },
+            new () { Id = 25, FirstName = "Belinda", LastName = "Little", DateOfBirth = new DateTime(2011, 03, 23), RecordType = RecordType.None },
+            new () { Id = 26, FirstName = "Cristopher", LastName = "Gallegos", DateOfBirth = new DateTime(2012, 05, 13), RecordType = RecordType.None },
+            new () { Id = 27, FirstName = "Robbie", LastName = "Andrews", DateOfBirth = new DateTime(2018, 03, 22), RecordType = RecordType.None },
+            new () { Id = 28, FirstName = "Marina", LastName = "Whitney", DateOfBirth = new DateTime(2010, 09, 19), RecordType = RecordType.None },
+            new () { Id = 29, FirstName = "Lorenzo", LastName = "Cochran", DateOfBirth = new DateTime(2008, 06, 10), RecordType = RecordType.None },
+            new () { Id = 30, FirstName = "Major", LastName = "Orozco", DateOfBirth = new DateTime(2009, 05, 24), RecordType = RecordType.None },
+            new () { Id = 31, FirstName = "Lara", LastName = "Chung", DateOfBirth = new DateTime(2001, 09, 19), RecordType = RecordType.None },
+            new () { Id = 32, FirstName = "Tristan", LastName = "Schroeder", DateOfBirth = new DateTime(2012, 01, 15), RecordType = RecordType.None },
+            new () { Id = 33, FirstName = "Williams", LastName = "Waters", DateOfBirth = new DateTime(2009, 09, 08), RecordType = RecordType.None },
+            new () { Id = 34, FirstName = "Janet", LastName = "Montgomery", DateOfBirth = new DateTime(2022, 07, 20), RecordType = RecordType.None },
+            new () { Id = 35, FirstName = "Theron", LastName = "Craig", DateOfBirth = new DateTime(2002, 05, 17), RecordType = RecordType.None },
+            new () { Id = 36, FirstName = "Bobbi", LastName = "Beltran", DateOfBirth = new DateTime(2003, 04, 11), RecordType = RecordType.None },
+            new () { Id = 37, FirstName = "Martin", LastName = "Carey", DateOfBirth = new DateTime(2010, 07, 13), RecordType = RecordType.None },
+            new () { Id = 38, FirstName = "Jacklyn", LastName = "Blair", DateOfBirth = new DateTime(2010, 10, 19), RecordType = RecordType.None },
+            new () { Id = 39, FirstName = "Harold", LastName = "Martinez", DateOfBirth = new DateTime(2009, 05, 14), RecordType = RecordType.None },
+            new () { Id = 40, FirstName = "Ana", LastName = "Pacheco", DateOfBirth = new DateTime(2007, 02, 04), RecordType = RecordType.None },
+            new () { Id = 41, FirstName = "Christi", LastName = "Hodge", DateOfBirth = new DateTime(2000, 02, 21), RecordType = RecordType.Type4 },
+            new () { Id = 42, FirstName = "Mildred", LastName = "Walton", DateOfBirth = new DateTime(2003, 06, 24), RecordType = RecordType.None },
+            new () { Id = 43, FirstName = "Edna", LastName = "Curtis", DateOfBirth = new DateTime(2010, 05, 20), RecordType = RecordType.None },
+            new () { Id = 44, FirstName = "Luciano", LastName = "Ho", DateOfBirth = new DateTime(2010, 09, 07), RecordType = RecordType.None },
+            new () { Id = 45, FirstName = "Belinda", LastName = "Little", DateOfBirth = new DateTime(2011, 03, 23), RecordType = RecordType.None },
+            new () { Id = 46, FirstName = "Cristopher", LastName = "Gallegos", DateOfBirth = new DateTime(2012, 05, 13), RecordType = RecordType.None },
+            new () { Id = 47, FirstName = "Robbie", LastName = "Andrews", DateOfBirth = new DateTime(2018, 03, 22), RecordType = RecordType.None },
+            new () { Id = 48, FirstName = "Marina", LastName = "Whitney", DateOfBirth = new DateTime(2010, 09, 19), RecordType = RecordType.None },
+            new () { Id = 49, FirstName = "Lorenzo", LastName = "Cochran", DateOfBirth = new DateTime(2008, 06, 10), RecordType = RecordType.None },
+            new () { Id = 50, FirstName = "Major", LastName = "Orozco", DateOfBirth = new DateTime(2009, 05, 24), RecordType = RecordType.None },
+            new () { Id = 51, FirstName = "Lara", LastName = "Chung", DateOfBirth = new DateTime(2001, 09, 19), RecordType = RecordType.None },
+            new () { Id = 52, FirstName = "Tristan", LastName = "Schroeder", DateOfBirth = new DateTime(2012, 01, 15), RecordType = RecordType.None },
+            new () { Id = 53, FirstName = "Williams", LastName = "Waters", DateOfBirth = new DateTime(2009, 09, 08), RecordType = RecordType.None },
+            new () { Id = 54, FirstName = "Janet", LastName = "Montgomery", DateOfBirth = new DateTime(2022, 07, 20), RecordType = RecordType.None },
+            new () { Id = 55, FirstName = "Theron", LastName = "Craig", DateOfBirth = new DateTime(2002, 05, 17), RecordType = RecordType.None },
+            new () { Id = 56, FirstName = "Bobbi", LastName = "Beltran", DateOfBirth = new DateTime(2003, 04, 11), RecordType = RecordType.None },
+            new () { Id = 57, FirstName = "Martin", LastName = "Carey", DateOfBirth = new DateTime(2010, 07, 13), RecordType = RecordType.None },
+            new () { Id = 58, FirstName = "Jacklyn", LastName = "Blair", DateOfBirth = new DateTime(2010, 10, 19), RecordType = RecordType.None },
+            new () { Id = 59, FirstName = "Harold", LastName = "Martinez", DateOfBirth = new DateTime(2009, 05, 14), RecordType = RecordType.None },
+            new () { Id = 60, FirstName = "Ana", LastName = "Pacheco", DateOfBirth = new DateTime(2007, 02, 04), RecordType = RecordType.None },
+            new () { Id = 61, FirstName = "Christi", LastName = "Hodge", DateOfBirth = new DateTime(2000, 02, 21), RecordType = RecordType.Type4 },
+            new () { Id = 62, FirstName = "Mildred", LastName = "Walton", DateOfBirth = new DateTime(2003, 06, 24), RecordType = RecordType.None },
+            new () { Id = 63, FirstName = "Edna", LastName = "Curtis", DateOfBirth = new DateTime(2010, 05, 20), RecordType = RecordType.None },
+            new () { Id = 64, FirstName = "Luciano", LastName = "Ho", DateOfBirth = new DateTime(2010, 09, 07), RecordType = RecordType.None },
+            new () { Id = 65, FirstName = "Belinda", LastName = "Little", DateOfBirth = new DateTime(2011, 03, 23), RecordType = RecordType.None },
+            new () { Id = 66, FirstName = "Cristopher", LastName = "Gallegos", DateOfBirth = new DateTime(2012, 05, 13), RecordType = RecordType.None },
+            new () { Id = 67, FirstName = "Robbie", LastName = "Andrews", DateOfBirth = new DateTime(2018, 03, 22), RecordType = RecordType.None },
+            new () { Id = 68, FirstName = "Marina", LastName = "Whitney", DateOfBirth = new DateTime(2010, 09, 19), RecordType = RecordType.None },
+            new () { Id = 69, FirstName = "Lorenzo", LastName = "Cochran", DateOfBirth = new DateTime(2008, 06, 10), RecordType = RecordType.None },
+            new () { Id = 70, FirstName = "Major", LastName = "Orozco", DateOfBirth = new DateTime(2009, 05, 24), RecordType = RecordType.None },
+            new () { Id = 71, FirstName = "Lara", LastName = "Chung", DateOfBirth = new DateTime(2001, 09, 19), RecordType = RecordType.None },
+            new () { Id = 72, FirstName = "Tristan", LastName = "Schroeder", DateOfBirth = new DateTime(2012, 01, 15), RecordType = RecordType.None },
+            new () { Id = 73, FirstName = "Williams", LastName = "Waters", DateOfBirth = new DateTime(2009, 09, 08), RecordType = RecordType.None },
+            new () { Id = 74, FirstName = "Janet", LastName = "Montgomery", DateOfBirth = new DateTime(2022, 07, 20), RecordType = RecordType.None },
+            new () { Id = 75, FirstName = "Theron", LastName = "Craig", DateOfBirth = new DateTime(2002, 05, 17), RecordType = RecordType.None },
+            new () { Id = 76, FirstName = "Bobbi", LastName = "Beltran", DateOfBirth = new DateTime(2003, 04, 11), RecordType = RecordType.None },
+            new () { Id = 77, FirstName = "Martin", LastName = "Carey", DateOfBirth = new DateTime(2010, 07, 13), RecordType = RecordType.None },
+            new () { Id = 78, FirstName = "Jacklyn", LastName = "Blair", DateOfBirth = new DateTime(2010, 10, 19), RecordType = RecordType.None },
+            new () { Id = 79, FirstName = "Harold", LastName = "Martinez", DateOfBirth = new DateTime(2009, 05, 14), RecordType = RecordType.None },
+            new () { Id = 80, FirstName = "Ana", LastName = "Pacheco", DateOfBirth = new DateTime(2007, 02, 04), RecordType = RecordType.None },
+        };
+
+        newData = sortField == null ? newData
+            : sortAscending ? newData.OrderBy(record => sortField.GetValue(record) is IComparable ? sortField.GetValue(record) : sortField.GetValue(record)?.ToString()).ToList()
+                : newData.OrderByDescending(record => sortField!.GetValue(record) is IComparable ? sortField.GetValue(record) : sortField.GetValue(record)?.ToString()).ToList();
+
+        // newData = searchText == null ? newData : [];
+
+        int totalRecords = newData.Count();
+
+        return (newData.Skip((pageIndex * pageSize)).Take(pageSize).ToList(), totalRecords);
     }
 }

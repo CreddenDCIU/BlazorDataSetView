@@ -37,7 +37,14 @@
                     displayName += SortAscending ? "▴" : "▾";
                 }
 
-                <th class="@columnCssClass" @onclick="() => ToggleSort(property)">@(displayName)</th>
+                if (FormInEditMode || (SingleRecordEdit && SingleRecordBeingEdited != null))
+                {
+                    <th class="@columnCssClass">@(displayName)</th>
+                }
+                else
+                {
+                    <th class="@columnCssClass" @onclick="() => ToggleSort(property)">@(displayName)</th>
+                }
             }
         </tr>
         @foreach (var record in CurrentPage ?? [])
