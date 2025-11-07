@@ -10,7 +10,7 @@
     {
         var searchEvent = SearchAsYouType ? "oninput" : "onchange";
         <span class="data-set-view-search-bar">
-            Search: <input type="text" @ref="txtSearchBox" @bind-Value="@CurrentSearch" @bind-Value:event="@searchEvent" />
+            Search: <InputText Value="@_currentSearch" ValueExpression="() => _currentSearch" ValueChanged="async (string value) => await UpdateSearchResults(value)" />
         </span>
     }
     @GetPaginationControls()
@@ -175,12 +175,11 @@
         get => _dataSourceUpdater;
         set
         {
+            if (_dataSourceUpdater == value && IsInitialDataLoadComplete) { return; }
             _dataSourceUpdater = value;
 
-            if (_dataSourceUpdater != null)
-            {
-                _ = Task.FromResult(GoToPage(PageIndex));
-            }
+            if (_dataSourceUpdater == null) { return; }
+            _ = Task.FromResult(GoToPage(PageIndex));
         }
     }
 
@@ -236,12 +235,12 @@
     protected bool SortAscending { get; set; } = true;
 
     protected int PageIndex { get; set; } = 0;
-    protected int PageSize { get; set; } = 25;
+    public int PageSize { get; protected set; } = 25;
     protected int PageCount { get; set; }
+    public bool IsInitialDataLoadComplete { get; set; } = false;
 
-    protected ElementReference? txtSearchBox { get; set; }
     private string _currentSearch = string.Empty;
-    protected string CurrentSearch
+    protected string CurrentSearch 
     {
         get => _currentSearch;
         set
@@ -338,11 +337,22 @@
         
         if (DataSourceUpdater == null) { return; }
         // TODO: Implement Search Field
+        DataSource = [];
         (IEnumerable<TEntity> Data, int TotalRecords) newData = await DataSourceUpdater.Invoke(PageIndex, PageSize, SortField, SortAscending, null, _currentSearch);
         DataSource = newData.Data;
         PageCount = (int)Math.Ceiling((decimal)newData.TotalRecords / PageSize);
 
+        if (newData.TotalRecords > 0 && !IsInitialDataLoadComplete)
+        {
+            IsInitialDataLoadComplete = true;
+        }
+
         this.StateHasChanged();
+    }
+
+    public async Task ReloadCurrentPage()
+    {
+        await GoToPage(PageIndex);
     }
 
     protected async Task UpdatePageSize(ChangeEventArgs args)
@@ -496,13 +506,10 @@
 
     protected async Task UpdateSearchResults(string searchString)
     {
-        if(PageIndex != 0)
-        {
-            await GoToPage(0);
-        }
+        _currentSearch = searchString;
 
-        SelectAllChecked = false;
-        this.StateHasChanged();
+        ToggleSelectAll(false);
+        await GoToPage(0);
     }
 
     // protected string GetSearchString(TEntity? record)
